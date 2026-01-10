@@ -1,10 +1,14 @@
 :root {
   /* Music Madness Palette */
-  --color-primary: #6d28d9; /* Deep Purple */
+  --color-primary: #6d28d9;
+  /* Deep Purple */
   --color-primary-light: #8b5cf6;
-  --color-secondary: #ec4899; /* Pink */
-  --color-accent: #f59e0b; /* Amber/Gold */
-  --color-background: #0f172a; /* Dark Slate */
+  --color-secondary: #ec4899;
+  /* Pink */
+  --color-accent: #f59e0b;
+  /* Amber/Gold */
+  --color-background: #0f172a;
+  /* Dark Slate */
   --color-surface: #1e293b;
   --color-text: #f8fafc;
   --color-text-muted: #94a3b8;
@@ -37,7 +41,10 @@ body {
   line-height: 1.5;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-family: var(--font-heading);
   font-weight: 700;
   line-height: 1.1;
@@ -51,7 +58,7 @@ a {
 
 .container {
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 var(--spacing-md);
 }
@@ -85,4 +92,56 @@ a {
   border-radius: var(--radius-lg);
   padding: var(--spacing-lg);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Bracket Styles */
+.bracket-container {
+  display: flex;
+  gap: 2rem;
+  overflow-x: auto;
+  padding: 2rem 0;
+}
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 1rem;
+  min-width: 200px;
+}
+
+.bracket-match {
+  background: #334155;
+  border-radius: 6px;
+  padding: 0.5rem;
+  position: relative;
+  border: 1px solid #475569;
+}
+
+.bracket-match.active {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.bracket-match p {
+  margin: 0;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+  color: #e2e8f0;
+}
+
+.bracket-match .winner {
+  background-color: #4ade80;
+  color: black;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.round-title {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
 }
