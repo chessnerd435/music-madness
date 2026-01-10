@@ -2,6 +2,8 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { submitVote } from './actions';
 
+export const dynamic = 'force-dynamic';
+
 export default async function VotePage() {
     // 1. Fetch active matches (status == 'open')
     // We can also filter by day if we want to be strict, but status='open' is simpler for now.

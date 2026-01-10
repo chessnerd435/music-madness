@@ -219,6 +219,7 @@ export async function openMatch(formData) {
         day: new Date().toISOString().split('T')[0]
     });
     revalidatePath('/admin');
+    revalidatePath('/vote');
 }
 
 export async function resolveMatch(formData) {
@@ -244,4 +245,5 @@ export async function resolveMatch(formData) {
 
     await batch.commit();
     revalidatePath('/admin');
+    revalidatePath('/vote');
 }
