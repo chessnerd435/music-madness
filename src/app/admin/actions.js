@@ -10,14 +10,16 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'musicmom';
 export async function login(formData) {
     const password = formData.get('password');
     if (password === ADMIN_PASSWORD) {
-        cookies().set('admin_session', 'true', { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+        const cookieStore = await cookies();
+        cookieStore.set('admin_session', 'true', { httpOnly: true, secure: process.env.NODE_ENV === 'production' });
         return { success: true };
     }
     return { success: false, error: 'Invalid password' };
 }
 
 export async function logout() {
-    cookies().delete('admin_session');
+    const cookieStore = await cookies();
+    cookieStore.delete('admin_session');
 }
 
 export async function addSong(formData) {
