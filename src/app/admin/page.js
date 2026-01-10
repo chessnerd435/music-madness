@@ -31,8 +31,9 @@ export default async function AdminPage() {
     const classesSnap = await getDocs(collection(db, 'classes'));
     const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const matchesSnap = await getDocs(query(collection(db, 'matches'), orderBy('round')));
+    const matchesSnap = await getDocs(collection(db, 'matches'));
     let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    matches.sort((a, b) => a.round - b.round);
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
