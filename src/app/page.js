@@ -2,8 +2,10 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
-  const matchesSnap = await getDocs(query(collection(db, 'matches'), orderBy('id'))); // id sort helps but we rely on round logic
+  const matchesSnap = await getDocs(collection(db, 'matches'));
   let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
   // Group by round
