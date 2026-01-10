@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass } from './actions';
+import SongItem from './SongItem';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -56,9 +57,7 @@ export default async function AdminPage() {
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
                             {songs.map(song => (
-                                <div key={song.id} style={{ padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
-                                    {song.title} - {song.artist}
-                                </div>
+                                <SongItem key={song.id} song={song} />
                             ))}
                         </div>
                     </div>

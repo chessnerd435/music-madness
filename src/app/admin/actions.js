@@ -41,6 +41,12 @@ export async function addSong(formData) {
     }
 }
 
+export async function deleteSong(formData) {
+    const id = formData.get('id');
+    await deleteDoc(doc(db, 'songs', id));
+    revalidatePath('/admin');
+}
+
 export async function clearSongs() {
     const q = await getDocs(collection(db, 'songs'));
     const batch = writeBatch(db);
