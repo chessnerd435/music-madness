@@ -4,7 +4,8 @@ import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
 export default async function AdminPage() {
-    const isLoggedIn = cookies().get('admin_session')?.value === 'true';
+    const cookieStore = await cookies();
+    const isLoggedIn = cookieStore.get('admin_session')?.value === 'true';
 
     if (!isLoggedIn) {
         return (
