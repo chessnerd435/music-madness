@@ -37,6 +37,15 @@ export default async function Home() {
         </div>
       </div>
 
+      <div className="card" style={{ maxWidth: '600px', margin: '0 auto 2rem', textAlign: 'left', background: '#334155' }}>
+        <h3 style={{ fontSize: '1.2rem', marginBottom: '0.5rem', color: '#e2e8f0' }}>How it Works</h3>
+        <ul style={{ paddingLeft: '1.5rem', margin: 0, color: '#cbd5e1', lineHeight: '1.6' }}>
+          <li>Visit the <Link href="/vote" style={{ color: '#4ade80' }}>Vote Page</Link> to cast your class's vote.</li>
+          <li>The bracket below updates only after Ms. Bermudez reviews votes and declares winners.</li>
+          <li>Questions? Contact <a href="mailto:abermudez@mamail.net" style={{ color: '#4ade80' }}>abermudez@mamail.net</a>.</li>
+        </ul>
+      </div>
+
       {matches.length === 0 ? (
         <div className="card text-center">
           <p>Bracket has not been generated yet.</p>

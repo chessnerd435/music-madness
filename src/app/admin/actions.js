@@ -93,6 +93,30 @@ export async function swapSongOrder(formData) {
     batch.update(doc(db, 'songs', id2), { order: newOrder2 });
     await batch.commit();
     revalidatePath('/admin');
+    await batch.commit();
+    revalidatePath('/admin');
+}
+
+export async function swapClassOrder(formData) {
+    const id1 = formData.get('id1');
+    const order1 = parseInt(formData.get('order1') || 0);
+    const id2 = formData.get('id2');
+    const order2 = parseInt(formData.get('order2') || 0);
+
+    let newOrder1 = order2;
+    let newOrder2 = order1;
+
+    // Handle initial case where orders might be 0 or equal
+    if (newOrder1 === newOrder2) {
+        newOrder2 = newOrder2 + 1;
+    }
+
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'classes', id1), { order: newOrder1 });
+    batch.update(doc(db, 'classes', id2), { order: newOrder2 });
+    await batch.commit();
+    revalidatePath('/admin');
+    revalidatePath('/vote');
 }
 
 export async function clearSongs() {
@@ -108,8 +132,13 @@ export async function clearSongs() {
 export async function addClass(formData) {
     const name = formData.get('name');
     if (!name) return { error: 'Missing Name' };
-    await addDoc(collection(db, 'classes'), { name });
+    await addDoc(collection(db, 'classes'), {
+        name,
+        order: Date.now(),
+        deleted: false
+    });
     revalidatePath('/admin');
+    revalidatePath('/vote');
 }
 
 export async function deleteClass(formData) {
@@ -246,4 +275,21 @@ export async function resolveMatch(formData) {
     await batch.commit();
     revalidatePath('/admin');
     revalidatePath('/vote');
+}
+
+export async function deleteVote(formData) {
+    const voteId = formData.get('voteId');
+    await deleteDoc(doc(db, 'votes', voteId));
+    revalidatePath('/admin');
+}
+
+export async function updateVote(formData) {
+    const voteId = formData.get('voteId');
+    const newSongId = formData.get('newSongId');
+
+    // We update the votedForId
+    await updateDoc(doc(db, 'votes', voteId), {
+        votedForId: newSongId
+    });
+    revalidatePath('/admin');
 }

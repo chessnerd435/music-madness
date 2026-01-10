@@ -14,7 +14,8 @@ export default async function VotePage() {
     const classesSnap = await getDocs(collection(db, 'classes'));
     let classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     // Sort classes internally
-    classes = classes.sort((a, b) => a.name.localeCompare(b.name));
+    // Sort classes by custom order
+    classes = classes.sort((a, b) => (a.order || 0) - (b.order || 0));
 
     // 3. Fetch songs to get YouTube URLs
     const songsSnap = await getDocs(collection(db, 'songs'));

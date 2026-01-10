@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder } from './actions';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder, swapClassOrder, deleteVote, updateVote } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -39,7 +39,7 @@ export default async function AdminPage() {
     matches.sort((a, b) => a.round - b.round);
 
     const votesSnap = await getDocs(collection(db, 'votes'));
-    const votes = votesSnap.docs.map(d => d.data());
+    const votes = votesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Calculate vote counts per match per song
     const voteCounts = {}; // { matchId: { song1Id: count, song2Id: count } }
@@ -142,9 +142,31 @@ export default async function AdminPage() {
                             <button className="btn btn-primary">Add</button>
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
-                            {classes.filter(c => !c.deleted).map(c => (
-                                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
-                                    <span>{c.name}</span>
+                            {classes.filter(c => !c.deleted).sort((a, b) => (a.order || 0) - (b.order || 0)).map((c, index, arr) => (
+                                <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {index > 0 && (
+                                                <form action={swapClassOrder}>
+                                                    <input type="hidden" name="id1" value={c.id} />
+                                                    <input type="hidden" name="order1" value={c.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index - 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index - 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▲</button>
+                                                </form>
+                                            )}
+                                            {index < arr.length - 1 && (
+                                                <form action={swapClassOrder}>
+                                                    <input type="hidden" name="id1" value={c.id} />
+                                                    <input type="hidden" name="order1" value={c.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index + 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index + 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▼</button>
+                                                </form>
+                                            )}
+                                        </div>
+                                        <span>{c.name}</span>
+                                    </div>
                                     <form action={deleteClass}>
                                         <input type="hidden" name="id" value={c.id} />
                                         <button style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer' }}>×</button>
@@ -245,6 +267,41 @@ export default async function AdminPage() {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Votes Management */}
+                                    {(voteCounts[match.id] && (Object.values(voteCounts[match.id]).some(v => v > 0))) && (
+                                        <details style={{ marginTop: '1rem', borderTop: '1px solid #475569', paddingTop: '0.5rem' }}>
+                                            <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: '#cbd5e1' }}>Manage Votes</summary>
+                                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                                {votes.filter(v => v.matchId === match.id).map(vote => {
+                                                    const votedSongTitle = vote.votedForId === match.song1Id ? match.song1Title : (vote.votedForId === match.song2Id ? match.song2Title : 'Unknown');
+                                                    const otherSongId = vote.votedForId === match.song1Id ? match.song2Id : match.song1Id;
+                                                    const className = classes.find(c => c.id === vote.classId)?.name || 'Unknown Class';
+
+                                                    return (
+                                                        <div key={vote.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', background: 'rgba(0,0,0,0.2)', padding: '0.2rem' }}>
+                                                            <div>
+                                                                <span style={{ fontWeight: 'bold' }}>{className}</span>: {votedSongTitle}
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                                {otherSongId && (
+                                                                    <form action={updateVote}>
+                                                                        <input type="hidden" name="voteId" value={vote.id} />
+                                                                        <input type="hidden" name="newSongId" value={otherSongId} />
+                                                                        <button title="Switch Vote" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>🔄</button>
+                                                                    </form>
+                                                                )}
+                                                                <form action={deleteVote}>
+                                                                    <input type="hidden" name="voteId" value={vote.id} />
+                                                                    <button title="Delete Vote" style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </details>
+                                    )}
 
                                     <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {match.status === 'locked' && match.song1Id && match.song2Id && (
