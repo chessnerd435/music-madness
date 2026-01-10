@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass } from './actions';
-import SongItem from './SongItem';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, deleteSong } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -57,9 +56,20 @@ export default async function AdminPage() {
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
                             {songs.map(song => (
-                                <SongItem key={song.id} song={song} />
+                                <div key={song.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+                                    <span>{song.title} - {song.artist}</span>
+                                    <form action={deleteSong}>
+                                        <input type="hidden" name="id" value={song.id} />
+                                        <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                                    </form>
+                                </div>
                             ))}
                         </div>
+                        {songs.length > 0 && (
+                            <form action={clearSongs} style={{ marginTop: '1rem' }}>
+                                <button className="btn" style={{ width: '100%', background: '#ef4444', fontSize: '0.8rem', padding: '0.5rem' }}>Clear All Songs</button>
+                            </form>
+                        )}
                     </div>
                 </div>
 
