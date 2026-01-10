@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import Link from 'next/link';
 import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
@@ -35,6 +36,17 @@ export default async function AdminPage() {
     let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     matches.sort((a, b) => a.round - b.round);
 
+    const votesSnap = await getDocs(collection(db, 'votes'));
+    const votes = votesSnap.docs.map(d => d.data());
+
+    // Calculate vote counts per match per song
+    const voteCounts = {}; // { matchId: { song1Id: count, song2Id: count } }
+    votes.forEach(v => {
+        if (!voteCounts[v.matchId]) voteCounts[v.matchId] = {};
+        if (!voteCounts[v.matchId][v.votedForId]) voteCounts[v.matchId][v.votedForId] = 0;
+        voteCounts[v.matchId][v.votedForId]++;
+    });
+
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -42,6 +54,10 @@ export default async function AdminPage() {
                 <form action={logout}>
                     <button className="btn" style={{ background: '#334155', color: 'white' }}>Logout</button>
                 </form>
+            </div>
+
+            <div>
+                <Link href="/" style={{ color: '#4ade80', textDecoration: 'none' }}>&larr; Back to Main Page</Link>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
@@ -206,6 +222,11 @@ export default async function AdminPage() {
                                             borderRadius: '4px'
                                         }}>
                                             {match.song1Title || 'TBD'}
+                                            {(match.status === 'open' || match.status === 'closed') && match.song1Id && voteCounts[match.id] && (
+                                                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                                    votes: {voteCounts[match.id][match.song1Id] || 0}
+                                                </div>
+                                            )}
                                         </div>
                                         <div style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.5 }}>VS</div>
                                         <div style={{
@@ -215,6 +236,11 @@ export default async function AdminPage() {
                                             borderRadius: '4px'
                                         }}>
                                             {match.song2Title || 'TBD'}
+                                            {(match.status === 'open' || match.status === 'closed') && match.song2Id && voteCounts[match.id] && (
+                                                <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                                                    votes: {voteCounts[match.id][match.song2Id] || 0}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 

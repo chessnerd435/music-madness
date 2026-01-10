@@ -21,6 +21,9 @@ export default function RootLayout({ children }) {
         <main className="container">
           {children}
         </main>
+        <footer style={{ textAlign: 'center', padding: '2rem 0', opacity: 0.5, fontSize: '0.8rem', color: '#94a3b8' }}>
+          Made by 🦆+🧔‍♂️
+        </footer>
       </body>
     </html>
   );

@@ -1,7 +1,7 @@
 'use server'
 
 import { db } from '@/lib/firebase';
-import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, getDoc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 export async function submitVote(formData) {
@@ -19,6 +19,17 @@ export async function submitVote(formData) {
     const matchSnap = await getDoc(matchRef);
     if (!matchSnap.exists() || matchSnap.data().status !== 'open') {
         return { error: 'Match is not open for voting' };
+    }
+
+    // Check if class has already voted
+    const existingVoteQ = query(
+        collection(db, 'votes'),
+        where('matchId', '==', matchId),
+        where('classId', '==', classId)
+    );
+    const existingVoteSnap = await getDocs(existingVoteQ);
+    if (!existingVoteSnap.empty) {
+        return { error: 'Your class has already voted!' };
     }
 
     try {
