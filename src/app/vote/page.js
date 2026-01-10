@@ -15,6 +15,26 @@ export default async function VotePage() {
     // Sort classes internally
     classes = classes.sort((a, b) => a.name.localeCompare(b.name));
 
+    // 3. Fetch songs to get YouTube URLs
+    const songsSnap = await getDocs(collection(db, 'songs'));
+    const songsMap = {};
+    songsSnap.forEach(doc => {
+        songsMap[doc.id] = doc.data();
+    });
+
+    const getYoutubeId = (url) => {
+        if (!url) return null;
+        try {
+            const u = new URL(url);
+            if (u.hostname.includes('youtube.com')) {
+                return u.searchParams.get('v');
+            } else if (u.hostname.includes('youtu.be')) {
+                return u.pathname.slice(1);
+            }
+        } catch (e) { return null; }
+        return null;
+    };
+
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <h1 className="text-center" style={{ marginBottom: '2rem' }}>Cast Your Votes! 🗳️</h1>
@@ -46,6 +66,19 @@ export default async function VotePage() {
                                     }}>
                                         <input type="radio" name="votedForId" value={match.song1Id} required style={{ display: 'block', margin: '0 auto 1rem' }} />
                                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song1Title}</div>
+                                        {songsMap[match.song1Id]?.youtubeUrl && (
+                                            <div style={{ marginTop: '1rem', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                                <iframe
+                                                    width="100%"
+                                                    height="200"
+                                                    src={`https://www.youtube.com/embed/${getYoutubeId(songsMap[match.song1Id].youtubeUrl)}`}
+                                                    title="YouTube video player"
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                ></iframe>
+                                            </div>
+                                        )}
                                     </label>
 
                                     <div style={{ display: 'flex', alignItems: 'center' }}>VS</div>
@@ -61,6 +94,19 @@ export default async function VotePage() {
                                     }}>
                                         <input type="radio" name="votedForId" value={match.song2Id} required style={{ display: 'block', margin: '0 auto 1rem' }} />
                                         <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song2Title}</div>
+                                        {songsMap[match.song2Id]?.youtubeUrl && (
+                                            <div style={{ marginTop: '1rem', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                                <iframe
+                                                    width="100%"
+                                                    height="200"
+                                                    src={`https://www.youtube.com/embed/${getYoutubeId(songsMap[match.song2Id].youtubeUrl)}`}
+                                                    title="YouTube video player"
+                                                    frameBorder="0"
+                                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                    allowFullScreen
+                                                ></iframe>
+                                            </div>
+                                        )}
                                     </label>
                                 </div>
 

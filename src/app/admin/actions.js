@@ -32,6 +32,7 @@ export async function addSong(formData) {
         await addDoc(collection(db, 'songs'), {
             title,
             artist,
+            youtubeUrl: formData.get('youtubeUrl') || '',
             seed: 0,
             order: Date.now(), // Use timestamp for easy initial sorting
             deleted: false
@@ -65,9 +66,31 @@ export async function swapSongOrder(formData) {
     const id2 = formData.get('id2');
     const order2 = parseInt(formData.get('order2'));
 
+    // Fix: If orders are same, spread them out first
+    // But for now, just swapping the values should work if they are distinct.
+    // If they are exactly the same, swap logic does nothing actually helpful unless we act on indices.
+    // However, if we trust the UI passed us the sorted list's adjacent items, we can force a swap.
+
+    // Better logic: slightly nudge if equal? 
+    // Or just swap.
+
+    let newOrder1 = order2;
+    let newOrder2 = order1;
+
+    if (newOrder1 === newOrder2) {
+        newOrder1 = newOrder1 - 1; // Move first one up (numerically lower is usually higher in list, but code sorted by order asc? actions.js says sort(a,b) => a.order - b.order)
+        // Wait, Admin Page sorts: sort((a, b) => (a.order || 0) - (b.order || 0))
+        // So smaller is higher up.
+        // logic: 
+        // Item A (order 100), Item B (order 100). 
+        // Swap -> Item A becomes 100, Item B becomes 100. No change.
+        // We need to nudge one.
+        newOrder2 = newOrder2 + 1;
+    }
+
     const batch = writeBatch(db);
-    batch.update(doc(db, 'songs', id1), { order: order2 });
-    batch.update(doc(db, 'songs', id2), { order: order1 });
+    batch.update(doc(db, 'songs', id1), { order: newOrder1 });
+    batch.update(doc(db, 'songs', id2), { order: newOrder2 });
     await batch.commit();
     revalidatePath('/admin');
 }
@@ -91,7 +114,17 @@ export async function addClass(formData) {
 
 export async function deleteClass(formData) {
     const id = formData.get('id');
-    await deleteDoc(doc(db, 'classes', id));
+    await updateDoc(doc(db, 'classes', id), {
+        deleted: true
+    });
+    revalidatePath('/admin');
+}
+
+export async function restoreClass(formData) {
+    const id = formData.get('id');
+    await updateDoc(doc(db, 'classes', id), {
+        deleted: false
+    });
     revalidatePath('/admin');
 }
 

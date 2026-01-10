@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, deleteSong, restoreSong, swapSongOrder } from './actions';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -52,6 +52,7 @@ export default async function AdminPage() {
                         <form action={addSong} style={{ display: 'flex', gap: '0.5rem' }}>
                             <input name="title" placeholder="Title" required style={{ padding: '0.5rem', flex: 1 }} />
                             <input name="artist" placeholder="Artist" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <input name="youtubeUrl" placeholder="YouTube URL (Optional)" style={{ padding: '0.5rem', flex: 1 }} />
                             <button className="btn btn-primary">Add</button>
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
@@ -123,7 +124,7 @@ export default async function AdminPage() {
                             <button className="btn btn-primary">Add</button>
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
-                            {classes.map(c => (
+                            {classes.filter(c => !c.deleted).map(c => (
                                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
                                     <span>{c.name}</span>
                                     <form action={deleteClass}>
@@ -133,6 +134,23 @@ export default async function AdminPage() {
                                 </div>
                             ))}
                         </div>
+
+                        {classes.some(c => c.deleted) && (
+                            <div style={{ marginTop: '2rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Deleted Classes (Hidden)</h4>
+                                <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+                                    {classes.filter(c => c.deleted).map(c => (
+                                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', fontSize: '0.8rem', opacity: 0.7 }}>
+                                            <span>{c.name}</span>
+                                            <form action={restoreClass}>
+                                                <input type="hidden" name="id" value={c.id} />
+                                                <button style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer' }}>Restore ↺</button>
+                                            </form>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

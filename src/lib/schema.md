@@ -6,6 +6,7 @@ List of all songs in the tournament.
 - `title` (string): Song title
 - `artist` (string): Artist name
 - `seed` (number): 1-32 (Initial ranking)
+- `youtubeUrl` (string): URL to YouTube video (optional)
 
 ## Collection: `matches`
 Represents a matchup between two songs or a TBD spot.
