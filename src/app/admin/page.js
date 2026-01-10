@@ -143,11 +143,20 @@ export default async function AdminPage() {
                 {matches.length === 0 ? (
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                         <p>No active bracket.</p>
-                        <form style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button formAction={generateBracket} name="size" value="8" className="btn btn-primary">Create 8</button>
-                            <button formAction={generateBracket} name="size" value="16" className="btn btn-primary">Create 16</button>
-                            <button formAction={generateBracket} name="size" value="32" className="btn btn-primary">Create 32</button>
-                        </form>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <form action={generateBracket}>
+                                <input type="hidden" name="size" value="8" />
+                                <button className="btn btn-primary">Create 8</button>
+                            </form>
+                            <form action={generateBracket}>
+                                <input type="hidden" name="size" value="16" />
+                                <button className="btn btn-primary">Create 16</button>
+                            </form>
+                            <form action={generateBracket}>
+                                <input type="hidden" name="size" value="32" />
+                                <button className="btn btn-primary">Create 32</button>
+                            </form>
+                        </div>
                     </div>
                 ) : (
                     <div>

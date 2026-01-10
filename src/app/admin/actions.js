@@ -96,7 +96,13 @@ export async function deleteClass(formData) {
 }
 
 export async function generateBracket(formData) {
-    const size = parseInt(formData.get('size'));
+    let size = parseInt(formData.get('size'));
+    if (isNaN(size)) {
+        // Fallback or error
+        console.error('Invalid size received:', formData.get('size'));
+        return { error: 'Invalid bracket size' };
+    }
+
     const songsSnap = await getDocs(collection(db, 'songs'));
     let songs = songsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
