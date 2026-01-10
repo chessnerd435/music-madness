@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, deleteSong } from './actions';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, deleteSong, restoreSong, swapSongOrder } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -55,9 +55,33 @@ export default async function AdminPage() {
                             <button className="btn btn-primary">Add</button>
                         </form>
                         <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
-                            {songs.map(song => (
-                                <div key={song.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
-                                    <span>{song.title} - {song.artist}</span>
+                            {songs.filter(s => !s.deleted).sort((a, b) => (a.order || 0) - (b.order || 0)).map((song, index, arr) => (
+                                <div key={song.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {index > 0 && (
+                                                <form action={swapSongOrder}>
+                                                    <input type="hidden" name="id1" value={song.id} />
+                                                    <input type="hidden" name="order1" value={song.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index - 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index - 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▲</button>
+                                                </form>
+                                            )}
+                                            {index < arr.length - 1 && (
+                                                <form action={swapSongOrder}>
+                                                    <input type="hidden" name="id1" value={song.id} />
+                                                    <input type="hidden" name="order1" value={song.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index + 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index + 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▼</button>
+                                                </form>
+                                            )}
+                                        </div>
+                                        <span>{song.title} - {song.artist}</span>
+                                    </div>
+
                                     <form action={deleteSong}>
                                         <input type="hidden" name="id" value={song.id} />
                                         <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
@@ -67,8 +91,25 @@ export default async function AdminPage() {
                         </div>
                         {songs.length > 0 && (
                             <form action={clearSongs} style={{ marginTop: '1rem' }}>
-                                <button className="btn" style={{ width: '100%', background: '#ef4444', fontSize: '0.8rem', padding: '0.5rem' }}>Clear All Songs</button>
+                                <button className="btn" style={{ width: '100%', background: '#ef4444', fontSize: '0.8rem', padding: '0.5rem' }}>Clear ALL Songs (Permanent)</button>
                             </form>
+                        )}
+
+                        {songs.some(s => s.deleted) && (
+                            <div style={{ marginTop: '2rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+                                <h4 style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '0.5rem' }}>Deleted Songs (Hidden)</h4>
+                                <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
+                                    {songs.filter(s => s.deleted).map(song => (
+                                        <div key={song.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', fontSize: '0.8rem', opacity: 0.7 }}>
+                                            <span>{song.title} - {song.artist}</span>
+                                            <form action={restoreSong}>
+                                                <input type="hidden" name="id" value={song.id} />
+                                                <button style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer' }}>Restore ↺</button>
+                                            </form>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>

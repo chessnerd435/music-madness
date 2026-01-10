@@ -32,7 +32,9 @@ export async function addSong(formData) {
         await addDoc(collection(db, 'songs'), {
             title,
             artist,
-            seed: 0 // Will assign later or auto-increment
+            seed: 0,
+            order: Date.now(), // Use timestamp for easy initial sorting
+            deleted: false
         });
         revalidatePath('/admin');
         return { success: true };
@@ -43,7 +45,30 @@ export async function addSong(formData) {
 
 export async function deleteSong(formData) {
     const id = formData.get('id');
-    await deleteDoc(doc(db, 'songs', id));
+    await updateDoc(doc(db, 'songs', id), {
+        deleted: true
+    });
+    revalidatePath('/admin');
+}
+
+export async function restoreSong(formData) {
+    const id = formData.get('id');
+    await updateDoc(doc(db, 'songs', id), {
+        deleted: false
+    });
+    revalidatePath('/admin');
+}
+
+export async function swapSongOrder(formData) {
+    const id1 = formData.get('id1');
+    const order1 = parseInt(formData.get('order1'));
+    const id2 = formData.get('id2');
+    const order2 = parseInt(formData.get('order2'));
+
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'songs', id1), { order: order2 });
+    batch.update(doc(db, 'songs', id2), { order: order1 });
+    await batch.commit();
     revalidatePath('/admin');
 }
 
@@ -79,7 +104,11 @@ export async function generateBracket(formData) {
         return { error: `Not enough songs! Need ${size}, have ${songs.length}` };
     }
 
-    songs = songs.sort(() => Math.random() - 0.5);
+    // Filter out deleted songs and sort them by order
+    songs = songs.filter(s => !s.deleted).sort((a, b) => a.order - b.order);
+
+    // DON'T random shuffle if we respect manual ordering
+    // songs = songs.sort(() => Math.random() - 0.5); 
 
     const batch = writeBatch(db);
     const matchesRef = collection(db, 'matches');

@@ -10,16 +10,17 @@ export default async function Home() {
   // 32 teams -> 5 rounds. R1(16), R2(8), R3(4), R4(2), R5(1)
   const rounds = {};
   matches.forEach(m => {
-    if (!rounds[m.round]) rounds[m.round] = [];
-    rounds[m.round].push(m);
+    // Robustly handle round number
+    const roundNum = m.round || parseInt(m.id.split('-')[0].replace('r', '')) || 0;
+    if (!rounds[roundNum]) rounds[roundNum] = [];
+    rounds[roundNum].push(m);
   });
 
   // Sort matches within rounds? 
   // We need to order them by display order? 
   // For a simple view, we just list them. For a proper tree connectivity, we need order.
   // The recursive generation assigned IDs like r1-m1, r1-m2... which are reasonably ordered.
-  // Let's sort keys of rounds.
-
+  // Sort rounds 1..N
   const roundKeys = Object.keys(rounds).sort((a, b) => parseInt(a) - parseInt(b));
 
   return (
