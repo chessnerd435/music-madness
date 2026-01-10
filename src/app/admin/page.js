@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder, swapClassOrder, deleteVote, updateVote } from './actions';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass, restoreClass, deleteSong, restoreSong, swapSongOrder, swapClassOrder, deleteVote, updateVote, unopenMatch, createBracket, switchAdminBracket, setBracketActive, migrateToMultiBracket } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -28,13 +28,32 @@ export default async function AdminPage() {
     }
 
     // Fetch data
-    const songsSnap = await getDocs(collection(db, 'songs'));
+    // Fetch data
+    const bracketsSnap = await getDocs(collection(db, 'brackets'));
+    const brackets = bracketsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const adminBracketId = cookieStore.get('admin_bracket_id')?.value;
+    const currentBracket = brackets.find(b => b.id === adminBracketId)
+        || brackets.find(b => b.isActive)
+        || brackets[0]
+        || null;
+    const currentBracketId = currentBracket ? currentBracket.id : null;
+
+    let songsQuery = collection(db, 'songs');
+    if (brackets.length > 0) {
+        songsQuery = query(collection(db, 'songs'), where('bracketId', '==', currentBracketId || 'unknown'));
+    }
+    const songsSnap = await getDocs(songsQuery);
     const songs = songsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     const classesSnap = await getDocs(collection(db, 'classes'));
     const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-    const matchesSnap = await getDocs(collection(db, 'matches'));
+    let matchesQuery = collection(db, 'matches');
+    if (brackets.length > 0) {
+        matchesQuery = query(collection(db, 'matches'), where('bracketId', '==', currentBracketId || 'unknown'));
+    }
+    const matchesSnap = await getDocs(matchesQuery);
     let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     matches.sort((a, b) => a.round - b.round);
 
@@ -60,6 +79,56 @@ export default async function AdminPage() {
 
             <div>
                 <Link href="/" style={{ color: '#4ade80', textDecoration: 'none' }}>&larr; Back to Main Page</Link>
+            </div>
+
+            <div className="card" style={{ border: '1px solid #c084fc', background: '#1e293b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h3>Bracket:</h3>
+                        {brackets.length > 0 ? (
+                            <form action={switchAdminBracket}>
+                                <select
+                                    name="bracketId"
+                                    defaultValue={currentBracketId}
+                                    onChange={e => e.target.form.requestSubmit()} // NOTE: This requires client-side JS. We might need a Submit button if this doesn't work, but standard HTML form submission on change works in many setups or we need a button. Actually without JS 'onChange' submitting form is standard in Next.js server actions ONLY if we have JS enabled. Since this is a server component dumping HTML, we need a small client component OR just a button.
+                                    /* Since we can't write inline JS easily without 'use client', I'll add a 'Go' button for safety */
+                                    style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none', marginRight: '0.5rem' }}
+                                >
+                                    {brackets.map(b => (
+                                        <option key={b.id} value={b.id}>
+                                            {b.name} {b.isActive ? '(Active)' : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Go</button>
+                            </form>
+                        ) : (
+                            <span style={{ color: '#f59e0b' }}>System Needs Initialization</span>
+                        )}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {currentBracket && !currentBracket.isActive && (
+                            <form action={setBracketActive}>
+                                <input type="hidden" name="bracketId" value={currentBracket.id} />
+                                <button className="btn" style={{ background: '#4ade80', color: 'black', fontSize: '0.8rem' }}>Make Active Publicly</button>
+                            </form>
+                        )}
+                        <form action={createBracket} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input name="name" placeholder="New Bracket Name" required style={{ padding: '0.4rem', width: '150px' }} />
+                            <button className="btn btn-primary" style={{ fontSize: '0.8rem' }}>Create</button>
+                        </form>
+                    </div>
+                </div>
+
+                {brackets.length === 0 && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', borderRadius: '4px' }}>
+                        <p style={{ marginBottom: '0.5rem', color: '#fcd34d' }}>Legacy Data Detected! No brackets found.</p>
+                        <form action={migrateToMultiBracket}>
+                            <button className="btn" style={{ background: '#eab308', color: 'black', width: '100%' }}>Initialize & Migrate Legacy Data</button>
+                        </form>
+                    </div>
+                )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
@@ -313,6 +382,10 @@ export default async function AdminPage() {
 
                                         {match.status === 'open' && (
                                             <>
+                                                <form action={unopenMatch}>
+                                                    <input type="hidden" name="matchId" value={match.id} />
+                                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#94a3b8', color: 'black' }}>Reset</button>
+                                                </form>
                                                 <form action={resolveMatch}>
                                                     <input type="hidden" name="matchId" value={match.id} />
                                                     <input type="hidden" name="winnerId" value={match.song1Id} />

@@ -5,10 +5,26 @@ import VoteMatchCard from './VoteMatchCard';
 export const dynamic = 'force-dynamic';
 
 export default async function VotePage() {
-    // 1. Fetch active matches (status == 'open')
-    const matchesQ = query(collection(db, 'matches'), where('status', '==', 'open'));
-    const matchesSnap = await getDocs(matchesQ);
-    const matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // 1. Determine Bracket
+    const bracketsSnap = await getDocs(query(collection(db, 'brackets'), where('isActive', '==', true)));
+    const activeBracket = bracketsSnap.docs[0];
+    const activeBracketId = activeBracket ? activeBracket.id : null;
+
+    // 2. Fetch active matches (status == 'open')
+    let matches = [];
+    if (activeBracketId) {
+        const matchesQ = query(collection(db, 'matches'), where('bracketId', '==', activeBracketId), where('status', '==', 'open'));
+        const matchesSnap = await getDocs(matchesQ);
+        matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } else {
+        const bCheck = await getDocs(collection(db, 'brackets'));
+        if (bCheck.empty) {
+            // Legacy/No Bracket fallback
+            const matchesQ = query(collection(db, 'matches'), where('status', '==', 'open'));
+            const matchesSnap = await getDocs(matchesQ);
+            matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        }
+    }
 
     // 2. Fetch classes
     const classesSnap = await getDocs(collection(db, 'classes'));

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { db } from '@/lib/firebase';
-import { collection, addDoc, getDocs, doc, updateDoc, writeBatch, query, where, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc, writeBatch, query, where, deleteDoc, getDoc, setDoc } from 'firebase/firestore';
 import { revalidatePath } from 'next/cache';
 
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'musicmom';
@@ -28,14 +28,18 @@ export async function addSong(formData) {
 
     if (!title || !artist) return { error: 'Missing fields' };
 
+    const cookieStore = await cookies();
+    const bracketId = cookieStore.get('admin_bracket_id')?.value;
+
     try {
         await addDoc(collection(db, 'songs'), {
             title,
             artist,
             youtubeUrl: formData.get('youtubeUrl') || '',
             seed: 0,
-            order: Date.now(), // Use timestamp for easy initial sorting
-            deleted: false
+            order: Date.now(),
+            deleted: false,
+            bracketId: bracketId || null
         });
         revalidatePath('/admin');
         return { success: true };
@@ -120,7 +124,14 @@ export async function swapClassOrder(formData) {
 }
 
 export async function clearSongs() {
-    const q = await getDocs(collection(db, 'songs'));
+    const cookieStore = await cookies();
+    const bracketId = cookieStore.get('admin_bracket_id')?.value;
+
+    // Only delete songs in current bracket
+    // Note: If no bracketId, we might delete orphans or legacy. Let's assume we want to be safe and only delete if bracketId matches, or if bracketId is null delete nulls.
+    // Simplifying: query by bracketId
+    const q = await getDocs(query(collection(db, 'songs'), where('bracketId', '==', bracketId || null)));
+
     const batch = writeBatch(db);
     q.forEach((doc) => {
         batch.delete(doc.ref);
@@ -165,7 +176,10 @@ export async function generateBracket(formData) {
         return { error: 'Invalid bracket size' };
     }
 
-    const songsSnap = await getDocs(collection(db, 'songs'));
+    const cookieStore = await cookies();
+    const bracketId = cookieStore.get('admin_bracket_id')?.value;
+
+    const songsSnap = await getDocs(query(collection(db, 'songs'), where('bracketId', '==', bracketId || null)));
     let songs = songsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     if (songs.length < size) {
@@ -222,7 +236,9 @@ export async function generateBracket(formData) {
             nextMatchId: m.next,
             nextMatchSlot: m.slot,
             status: 'locked',
-            day: null
+            status: 'locked',
+            day: null,
+            bracketId: bracketId || null
         });
     });
 
@@ -232,7 +248,10 @@ export async function generateBracket(formData) {
 }
 
 export async function deleteBracket() {
-    const q = await getDocs(collection(db, 'matches'));
+    const cookieStore = await cookies();
+    const bracketId = cookieStore.get('admin_bracket_id')?.value;
+
+    const q = await getDocs(query(collection(db, 'matches'), where('bracketId', '==', bracketId || null)));
     const batch = writeBatch(db);
     q.forEach((doc) => {
         batch.delete(doc.ref);
@@ -246,6 +265,16 @@ export async function openMatch(formData) {
     await updateDoc(doc(db, 'matches', matchId), {
         status: 'open',
         day: new Date().toISOString().split('T')[0]
+    });
+    revalidatePath('/admin');
+    revalidatePath('/vote');
+}
+
+export async function unopenMatch(formData) {
+    const matchId = formData.get('matchId');
+    await updateDoc(doc(db, 'matches', matchId), {
+        status: 'locked',
+        day: null
     });
     revalidatePath('/admin');
     revalidatePath('/vote');
@@ -291,5 +320,79 @@ export async function updateVote(formData) {
     await updateDoc(doc(db, 'votes', voteId), {
         votedForId: newSongId
     });
+    revalidatePath('/admin');
+}
+
+export async function createBracket(formData) {
+    const name = formData.get('name');
+    if (!name) return;
+    const ref = await addDoc(collection(db, 'brackets'), {
+        name,
+        isActive: false,
+        createdAt: new Date().toISOString()
+    });
+    const cookieStore = await cookies();
+    cookieStore.set('admin_bracket_id', ref.id);
+    revalidatePath('/admin');
+}
+
+export async function switchAdminBracket(formData) {
+    const id = formData.get('bracketId');
+    const cookieStore = await cookies();
+    cookieStore.set('admin_bracket_id', id);
+    revalidatePath('/admin');
+}
+
+export async function setBracketActive(formData) {
+    const id = formData.get('bracketId');
+    const q = await getDocs(collection(db, 'brackets'));
+    const batch = writeBatch(db);
+    q.forEach(d => {
+        batch.update(doc(db, 'brackets', d.id), { isActive: d.id === id });
+    });
+    await batch.commit();
+    revalidatePath('/admin');
+    revalidatePath('/');
+    revalidatePath('/vote');
+}
+
+export async function migrateToMultiBracket() {
+    // Check if any brackets exist
+    const bSnap = await getDocs(collection(db, 'brackets'));
+    if (!bSnap.empty) return; // Already migrated
+
+    // Create Default Bracket
+    const bracketRef = await addDoc(collection(db, 'brackets'), {
+        name: '2024 Tournament',
+        isActive: true,
+        createdAt: new Date().toISOString()
+    });
+    const bracketId = bracketRef.id;
+
+    const batch = writeBatch(db);
+    let count = 0;
+
+    // Update Songs
+    const songsSnap = await getDocs(collection(db, 'songs'));
+    songsSnap.forEach(d => {
+        if (!d.data().bracketId) {
+            batch.update(d.ref, { bracketId });
+            count++;
+        }
+    });
+
+    // Update Matches
+    const matchesSnap = await getDocs(collection(db, 'matches'));
+    matchesSnap.forEach(d => {
+        if (!d.data().bracketId) {
+            batch.update(d.ref, { bracketId });
+            count++;
+        }
+    });
+
+    if (count > 0) await batch.commit();
+
+    const cookieStore = await cookies();
+    cookieStore.set('admin_bracket_id', bracketId);
     revalidatePath('/admin');
 }

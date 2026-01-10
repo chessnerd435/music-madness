@@ -1,12 +1,28 @@
 import { db } from '@/lib/firebase';
-import { collection, getDocs, orderBy, query } from 'firebase/firestore';
+import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  const matchesSnap = await getDocs(collection(db, 'matches'));
-  let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const bracketsSnap = await getDocs(query(collection(db, 'brackets'), where('isActive', '==', true)));
+  const activeBracket = bracketsSnap.docs[0];
+  const activeBracketId = activeBracket ? activeBracket.id : null;
+
+  let matches = [];
+  if (activeBracketId) {
+    const q = query(collection(db, 'matches'), where('bracketId', '==', activeBracketId));
+    const s = await getDocs(q);
+    matches = s.docs.map(d => ({ id: d.id, ...d.data() }));
+  } else {
+    // Check if ANY brackets exist.
+    const bCheck = await getDocs(collection(db, 'brackets'));
+    if (bCheck.empty) {
+      // Legacy mode
+      const s = await getDocs(collection(db, 'matches'));
+      matches = s.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+  }
 
   // Group by round
   // 32 teams -> 5 rounds. R1(16), R2(8), R3(4), R4(2), R5(1)
