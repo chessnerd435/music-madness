@@ -1,5 +1,5 @@
 import { cookies } from 'next/headers';
-import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch } from './actions';
+import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, openMatch, resolveMatch, addClass, deleteClass } from './actions';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
@@ -27,12 +27,11 @@ export default async function AdminPage() {
     const songsSnap = await getDocs(collection(db, 'songs'));
     const songs = songsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    const classesSnap = await getDocs(collection(db, 'classes'));
+    const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
     const matchesSnap = await getDocs(query(collection(db, 'matches'), orderBy('round')));
     let matches = matchesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    // Sort matches by Round descending (Finals at top) or ascending (Round 1 at top)?
-    // Usually usually nice to see active matches. Let's sort by Round Ascending.
-    // Already done in query.
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -43,33 +42,46 @@ export default async function AdminPage() {
                 </form>
             </div>
 
-            <div className="card">
-                <h3>Manage Songs ({songs.length})</h3>
-                <div style={{ display: 'flex', gap: '2rem', marginTop: '1rem' }}>
-
-                    {/* Add Song Form */}
-                    <div style={{ flex: 1 }}>
-                        <h4>Add New Song</h4>
-                        <form action={addSong} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
-                            <input name="title" placeholder="Song Title" required style={{ padding: '0.5rem' }} />
-                            <input name="artist" placeholder="Artist" required style={{ padding: '0.5rem' }} />
-                            <button className="btn btn-primary" style={{ marginTop: '0.5rem' }}>Add Song</button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* Songs */}
+                <div className="card">
+                    <h3>Manage Songs ({songs.length})</h3>
+                    <div style={{ marginTop: '1rem' }}>
+                        <form action={addSong} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input name="title" placeholder="Title" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <input name="artist" placeholder="Artist" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <button className="btn btn-primary">Add</button>
                         </form>
-                        <form action={clearSongs} style={{ marginTop: '1rem' }}>
-                            <button className="btn" style={{ background: 'red', fontSize: '0.8rem', padding: '0.2rem 0.5rem' }}>Clear All Songs</button>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
+                            {songs.map(song => (
+                                <div key={song.id} style={{ padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+                                    {song.title} - {song.artist}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Classes */}
+                <div className="card">
+                    <h3>Manage Classes ({classes.length})</h3>
+                    <div style={{ marginTop: '1rem' }}>
+                        <form action={addClass} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input name="name" placeholder="Class Name (e.g. 5B Smith)" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <button className="btn btn-primary">Add</button>
                         </form>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
+                            {classes.map(c => (
+                                <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+                                    <span>{c.name}</span>
+                                    <form action={deleteClass}>
+                                        <input type="hidden" name="id" value={c.id} />
+                                        <button style={{ background: 'none', border: 'none', color: 'red', cursor: 'pointer' }}>×</button>
+                                    </form>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-
-                    {/* Song List */}
-                    <div style={{ flex: 1, maxHeight: '200px', overflowY: 'auto' }}>
-                        {songs.map(song => (
-                            <div key={song.id} style={{ padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
-                                <strong>{song.title}</strong> - {song.artist}
-                            </div>
-                        ))}
-                        {songs.length === 0 && <p style={{ color: '#666' }}>No songs added yet.</p>}
-                    </div>
-
                 </div>
             </div>
 
@@ -80,15 +92,15 @@ export default async function AdminPage() {
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                         <p>No active bracket.</p>
                         <form style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button formAction={generateBracket} name="size" value="8" className="btn btn-primary">Create 8-Song</button>
-                            <button formAction={generateBracket} name="size" value="16" className="btn btn-primary">Create 16-Song</button>
-                            <button formAction={generateBracket} name="size" value="32" className="btn btn-primary">Create 32-Song</button>
+                            <button formAction={generateBracket} name="size" value="8" className="btn btn-primary">Create 8</button>
+                            <button formAction={generateBracket} name="size" value="16" className="btn btn-primary">Create 16</button>
+                            <button formAction={generateBracket} name="size" value="32" className="btn btn-primary">Create 32</button>
                         </form>
                     </div>
                 ) : (
                     <div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                            <p>Total Matches: {matches.length}</p>
+                            <p>Matches: {matches.length}</p>
                             <form action={deleteBracket}>
                                 <button className="btn" style={{ background: 'red', fontSize: '0.8rem' }}>Delete Bracket</button>
                             </form>
@@ -107,7 +119,6 @@ export default async function AdminPage() {
                                         <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{match.status}</span>
                                     </div>
 
-                                    {/* Contestants */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                         <div style={{
                                             padding: '0.5rem',
@@ -128,12 +139,11 @@ export default async function AdminPage() {
                                         </div>
                                     </div>
 
-                                    {/* Controls */}
                                     <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {match.status === 'locked' && match.song1Id && match.song2Id && (
                                             <form action={openMatch}>
                                                 <input type="hidden" name="matchId" value={match.id} />
-                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#eab308', color: 'black' }}>Open Voting</button>
+                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#eab308', color: 'black' }}>Opn Vote</button>
                                             </form>
                                         )}
 
@@ -145,7 +155,7 @@ export default async function AdminPage() {
                                                     <input type="hidden" name="winnerName" value={match.song1Title} />
                                                     <input type="hidden" name="nextMatchId" value={match.nextMatchId} />
                                                     <input type="hidden" name="nextMatchSlot" value={match.nextMatchSlot} />
-                                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#4ade80', color: 'black' }}>Win: {match.song1Title}</button>
+                                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#4ade80', color: 'black' }}>Win: {match.song1Title?.substring(0, 10)}</button>
                                                 </form>
                                                 <form action={resolveMatch}>
                                                     <input type="hidden" name="matchId" value={match.id} />
@@ -153,7 +163,7 @@ export default async function AdminPage() {
                                                     <input type="hidden" name="winnerName" value={match.song2Title} />
                                                     <input type="hidden" name="nextMatchId" value={match.nextMatchId} />
                                                     <input type="hidden" name="nextMatchSlot" value={match.nextMatchSlot} />
-                                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#4ade80', color: 'black' }}>Win: {match.song2Title}</button>
+                                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#4ade80', color: 'black' }}>Win: {match.song2Title?.substring(0, 10)}</button>
                                                 </form>
                                             </>
                                         )}
