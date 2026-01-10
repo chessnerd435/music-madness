@@ -4,6 +4,8 @@ import { login, logout, addSong, clearSongs, generateBracket, deleteBracket, ope
 import { db } from '@/lib/firebase';
 import { collection, getDocs, orderBy, query } from 'firebase/firestore';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
     const cookieStore = await cookies();
     const isLoggedIn = cookieStore.get('admin_session')?.value === 'true';
@@ -222,9 +224,9 @@ export default async function AdminPage() {
                                             borderRadius: '4px'
                                         }}>
                                             {match.song1Title || 'TBD'}
-                                            {(match.status === 'open' || match.status === 'closed') && match.song1Id && voteCounts[match.id] && (
+                                            {(match.status === 'open' || match.status === 'closed') && match.song1Id && (
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                                    votes: {voteCounts[match.id][match.song1Id] || 0}
+                                                    votes: {(voteCounts[match.id] && voteCounts[match.id][match.song1Id]) || 0}
                                                 </div>
                                             )}
                                         </div>
@@ -236,9 +238,9 @@ export default async function AdminPage() {
                                             borderRadius: '4px'
                                         }}>
                                             {match.song2Title || 'TBD'}
-                                            {(match.status === 'open' || match.status === 'closed') && match.song2Id && voteCounts[match.id] && (
+                                            {(match.status === 'open' || match.status === 'closed') && match.song2Id && (
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                                    votes: {voteCounts[match.id][match.song2Id] || 0}
+                                                    votes: {(voteCounts[match.id] && voteCounts[match.id][match.song2Id]) || 0}
                                                 </div>
                                             )}
                                         </div>
