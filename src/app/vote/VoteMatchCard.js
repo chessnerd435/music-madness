@@ -3,7 +3,10 @@
 import { useState } from 'react';
 import { submitVote, deleteVote } from './actions';
 
+import { useRouter } from 'next/navigation';
+
 export default function VoteMatchCard({ match, classes, votes, songsMap }) {
+    const router = useRouter();
     const [selectedClassId, setSelectedClassId] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', msg: string }
@@ -44,6 +47,7 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
             setFeedback({ type: 'error', msg: res.error });
         } else {
             setFeedback({ type: 'success', msg: 'Vote Confirmed! 🎉' });
+            router.refresh(); // Refresh server data
         }
         setIsSubmitting(false);
     };
@@ -56,6 +60,7 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
             setFeedback({ type: 'error', msg: res.error });
         } else {
             setFeedback(null); // Clear feedback to show form again
+            router.refresh(); // Refresh server data
         }
         setIsSubmitting(false);
     };
