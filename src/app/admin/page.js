@@ -90,7 +90,6 @@ export default async function AdminPage() {
                                 <select
                                     name="bracketId"
                                     defaultValue={currentBracketId}
-                                    onChange={e => e.target.form.requestSubmit()} // NOTE: This requires client-side JS. We might need a Submit button if this doesn't work, but standard HTML form submission on change works in many setups or we need a button. Actually without JS 'onChange' submitting form is standard in Next.js server actions ONLY if we have JS enabled. Since this is a server component dumping HTML, we need a small client component OR just a button.
                                     /* Since we can't write inline JS easily without 'use client', I'll add a 'Go' button for safety */
                                     style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none', marginRight: '0.5rem' }}
                                 >
