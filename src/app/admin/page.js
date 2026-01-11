@@ -266,7 +266,7 @@ export default async function AdminPage() {
 
                 {matches.length === 0 ? (
                     <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                        <p>No active bracket.</p>
+                        <p>No matches found.</p>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <form action={generateBracket}>
                                 <input type="hidden" name="size" value="8" />
