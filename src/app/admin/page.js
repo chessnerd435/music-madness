@@ -61,10 +61,11 @@ export default async function AdminPage() {
     const votes = votesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Calculate vote counts per match per song
+    // Calculate vote counts per match per song
     const voteCounts = {}; // { matchId: { song1Id: count, song2Id: count } }
     votes.forEach(v => {
         if (!voteCounts[v.matchId]) voteCounts[v.matchId] = {};
-        if (!voteCounts[v.matchId][v.votedForId]) voteCounts[v.matchId][v.votedForId] = 0;
+        if (voteCounts[v.matchId][v.votedForId] === undefined) voteCounts[v.matchId][v.votedForId] = 0;
         voteCounts[v.matchId][v.votedForId]++;
     });
 
@@ -89,13 +90,13 @@ export default async function AdminPage() {
                             <form action={switchAdminBracket}>
                                 <select
                                     name="bracketId"
-                                    defaultValue={currentBracketId}
+                                    defaultValue={currentBracketId || ''}
                                     /* Since we can't write inline JS easily without 'use client', I'll add a 'Go' button for safety */
                                     style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none', marginRight: '0.5rem' }}
                                 >
                                     {brackets.map(b => (
                                         <option key={b.id} value={b.id}>
-                                            {b.name} {b.isActive ? '(Active)' : ''}
+                                            {String(b.name)} {b.isActive ? '(Active)' : ''}
                                         </option>
                                     ))}
                                 </select>
@@ -166,7 +167,7 @@ export default async function AdminPage() {
                                                 </form>
                                             )}
                                         </div>
-                                        <span>{song.title} - {song.artist}</span>
+                                        <span>{String(song.title)} - {String(song.artist)}</span>
                                     </div>
 
                                     <form action={deleteSong}>
@@ -188,7 +189,7 @@ export default async function AdminPage() {
                                 <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
                                     {songs.filter(s => s.deleted).map(song => (
                                         <div key={song.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', fontSize: '0.8rem', opacity: 0.7 }}>
-                                            <span>{song.title} - {song.artist}</span>
+                                            <span>{String(song.title)} - {String(song.artist)}</span>
                                             <form action={restoreSong}>
                                                 <input type="hidden" name="id" value={song.id} />
                                                 <button style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer' }}>Restore ↺</button>
@@ -233,7 +234,7 @@ export default async function AdminPage() {
                                                 </form>
                                             )}
                                         </div>
-                                        <span>{c.name}</span>
+                                        <span>{String(c.name)}</span>
                                     </div>
                                     <form action={deleteClass}>
                                         <input type="hidden" name="id" value={c.id} />
@@ -249,7 +250,7 @@ export default async function AdminPage() {
                                 <div style={{ maxHeight: '100px', overflowY: 'auto' }}>
                                     {classes.filter(c => c.deleted).map(c => (
                                         <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.2rem', fontSize: '0.8rem', opacity: 0.7 }}>
-                                            <span>{c.name}</span>
+                                            <span>{String(c.name)}</span>
                                             <form action={restoreClass}>
                                                 <input type="hidden" name="id" value={c.id} />
                                                 <button style={{ background: 'none', border: 'none', color: '#4ade80', cursor: 'pointer' }}>Restore ↺</button>
@@ -303,7 +304,7 @@ export default async function AdminPage() {
                                 }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
                                         <span>{match.id} (R{match.round})</span>
-                                        <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{match.status}</span>
+                                        <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{String(match.status)}</span>
                                     </div>
 
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -313,10 +314,10 @@ export default async function AdminPage() {
                                             color: match.winnerId && match.winnerId === match.song1Id ? 'black' : 'white',
                                             borderRadius: '4px'
                                         }}>
-                                            {match.song1Title || 'TBD'}
+                                            {String(match.song1Title || 'TBD')}
                                             {(match.status === 'open' || match.status === 'closed') && match.song1Id && (
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                                    votes: {(voteCounts[match.id] && voteCounts[match.id][match.song1Id]) || 0}
+                                                    votes: {String((voteCounts[match.id] && voteCounts[match.id][match.song1Id]) || 0)}
                                                 </div>
                                             )}
                                         </div>
@@ -327,10 +328,10 @@ export default async function AdminPage() {
                                             color: match.winnerId && match.winnerId === match.song2Id ? 'black' : 'white',
                                             borderRadius: '4px'
                                         }}>
-                                            {match.song2Title || 'TBD'}
+                                            {String(match.song2Title || 'TBD')}
                                             {(match.status === 'open' || match.status === 'closed') && match.song2Id && (
                                                 <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                                                    votes: {(voteCounts[match.id] && voteCounts[match.id][match.song2Id]) || 0}
+                                                    votes: {String((voteCounts[match.id] && voteCounts[match.id][match.song2Id]) || 0)}
                                                 </div>
                                             )}
                                         </div>
