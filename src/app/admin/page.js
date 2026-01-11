@@ -67,14 +67,10 @@ export default async function AdminPage() {
         voteCounts[v.matchId][v.votedForId]++;
     });
 
-    console.log('Brackets:', brackets.length);
-    console.log('Songs:', songs.length);
-    console.log('Matches:', matches.length);
-
     return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h1>Admin Dashboard (Diagnostic)</h1>
+                <h1>Admin Dashboard (Safe Mode)</h1>
                 <form action={logout}>
                     <button className="btn" style={{ background: '#334155', color: 'white' }}>Logout</button>
                 </form>
@@ -84,16 +80,173 @@ export default async function AdminPage() {
                 <Link href="/" style={{ color: '#4ade80', textDecoration: 'none' }}>&larr; Back to Main Page</Link>
             </div>
 
-            <div className="card">
-                <h3>Stats</h3>
-                <p>Brackets Found: {brackets.length}</p>
-                <p>Current Bracket ID: {String(currentBracketId)}</p>
-                <p>Songs Found: {songs.length}</p>
-                <p>Matches Found: {matches.length}</p>
-                <p>Classes Found: {classes.length}</p>
+            <div className="card" style={{ border: '1px solid #c084fc', background: '#1e293b' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <h3>Bracket: {currentBracket ? String(currentBracket.name) : 'None'}</h3>
+                        {/* DROPDOWN REMOVED FOR DIAGNOSTIC */}
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        {currentBracket && !currentBracket.isActive && (
+                            <form action={setBracketActive}>
+                                <input type="hidden" name="bracketId" value={currentBracket.id} />
+                                <button className="btn" style={{ background: '#4ade80', color: 'black', fontSize: '0.8rem' }}>Make Active Publicly</button>
+                            </form>
+                        )}
+                        <form action={createBracket} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input name="name" placeholder="New Bracket Name" required style={{ padding: '0.4rem', width: '150px' }} />
+                            <button className="btn btn-primary" style={{ fontSize: '0.8rem' }}>Create</button>
+                        </form>
+                    </div>
+                </div>
+
+                {brackets.length === 0 && (
+                    <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(234, 179, 8, 0.1)', border: '1px solid #eab308', borderRadius: '4px' }}>
+                        <p style={{ marginBottom: '0.5rem', color: '#fcd34d' }}>Legacy Data Detected! No brackets found.</p>
+                        <form action={migrateToMultiBracket}>
+                            <button className="btn" style={{ background: '#eab308', color: 'black', width: '100%' }}>Initialize & Migrate Legacy Data</button>
+                        </form>
+                    </div>
+                )}
             </div>
 
-            {/* If this renders, we know the issue is in the lists below */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                {/* Songs */}
+                <div className="card">
+                    <h3>Manage Songs ({songs.length})</h3>
+                    <div style={{ marginTop: '1rem' }}>
+                        <form action={addSong} style={{ display: 'flex', gap: '0.5rem' }}>
+                            <input name="title" placeholder="Title" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <input name="artist" placeholder="Artist" required style={{ padding: '0.5rem', flex: 1 }} />
+                            <input name="youtubeUrl" placeholder="YouTube URL (Optional)" style={{ padding: '0.5rem', flex: 1 }} />
+                            <button className="btn btn-primary">Add</button>
+                        </form>
+                        <div style={{ maxHeight: '150px', overflowY: 'auto', marginTop: '1rem' }}>
+                            {songs.filter(s => !s.deleted).sort((a, b) => (a.order || 0) - (b.order || 0)).map((song, index, arr) => (
+                                <div key={song.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.2rem', borderBottom: '1px solid #333', fontSize: '0.9rem' }}>
+
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                            {index > 0 && (
+                                                <form action={swapSongOrder}>
+                                                    <input type="hidden" name="id1" value={song.id} />
+                                                    <input type="hidden" name="order1" value={song.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index - 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index - 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▲</button>
+                                                </form>
+                                            )}
+                                            {index < arr.length - 1 && (
+                                                <form action={swapSongOrder}>
+                                                    <input type="hidden" name="id1" value={song.id} />
+                                                    <input type="hidden" name="order1" value={song.order || 0} />
+                                                    <input type="hidden" name="id2" value={arr[index + 1].id} />
+                                                    <input type="hidden" name="order2" value={arr[index + 1].order || 0} />
+                                                    <button style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '0.7rem' }}>▼</button>
+                                                </form>
+                                            )}
+                                        </div>
+                                        <span>{String(song.title)} - {String(song.artist)}</span>
+                                    </div>
+
+                                    <form action={deleteSong}>
+                                        <input type="hidden" name="id" value={song.id} />
+                                        <button style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>×</button>
+                                    </form>
+                                </div>
+                            ))}
+                        </div>
+                        {songs.length > 0 && (
+                            <form action={clearSongs} style={{ marginTop: '1rem' }}>
+                                <button className="btn" style={{ width: '100%', background: '#ef4444', fontSize: '0.8rem', padding: '0.5rem' }}>Clear ALL Songs (Permanent)</button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+
+                {/* Classes - REMOVED FOR BREVITY/SAFETY, ADD BACK LATER */}
+                <div className="card">
+                    <h3>Manage Classes</h3>
+                    <p>Classes hidden in safe mode.</p>
+                </div>
+            </div>
+
+            <div className="card">
+                <h3>Bracket Management</h3>
+
+                {matches.length === 0 ? (
+                    <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <p>No active bracket.</p>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <form action={generateBracket}>
+                                <input type="hidden" name="size" value="8" />
+                                <button className="btn btn-primary">Create 8</button>
+                            </form>
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
+                            <p>Matches: {matches.length}</p>
+                            <form action={deleteBracket}>
+                                <button className="btn" style={{ background: 'red', fontSize: '0.8rem' }}>Delete Bracket</button>
+                            </form>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                            {matches.map(match => (
+                                <div key={match.id} style={{
+                                    background: match.status === 'open' ? 'rgba(74, 222, 128, 0.1)' : '#334155',
+                                    padding: '1rem',
+                                    borderRadius: '0.5rem',
+                                    border: match.status === 'open' ? '1px solid #4ade80' : 'none'
+                                }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                                        <span>{match.id} (R{match.round})</span>
+                                        <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>{String(match.status)}</span>
+                                    </div>
+
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div style={{
+                                            padding: '0.5rem',
+                                            background: match.winnerId && match.winnerId === match.song1Id ? '#4ade80' : 'rgba(0,0,0,0.2)',
+                                            color: match.winnerId && match.winnerId === match.song1Id ? 'black' : 'white',
+                                            borderRadius: '4px'
+                                        }}>
+                                            {String(match.song1Title || 'TBD')}
+                                        </div>
+                                        <div style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.5 }}>VS</div>
+                                        <div style={{
+                                            padding: '0.5rem',
+                                            background: match.winnerId && match.winnerId === match.song2Id ? '#4ade80' : 'rgba(0,0,0,0.2)',
+                                            color: match.winnerId && match.winnerId === match.song2Id ? 'black' : 'white',
+                                            borderRadius: '4px'
+                                        }}>
+                                            {String(match.song2Title || 'TBD')}
+                                        </div>
+                                    </div>
+                                    {/* VOTES AND ACTIONS REMOVED IN SAFE MODE */}
+                                    <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                                        {match.status === 'locked' && match.song1Id && match.song2Id && (
+                                            <form action={openMatch}>
+                                                <input type="hidden" name="matchId" value={match.id} />
+                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#eab308', color: 'black' }}>Opn Vote</button>
+                                            </form>
+                                        )}
+                                        {match.status === 'open' && (
+                                            <form action={unopenMatch}>
+                                                <input type="hidden" name="matchId" value={match.id} />
+                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#94a3b8', color: 'black' }}>Reset</button>
+                                            </form>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
