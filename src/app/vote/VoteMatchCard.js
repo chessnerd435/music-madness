@@ -144,7 +144,7 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                        style={{ pointerEvents: 'none' }} // Prevent interaction with iframe interfering with click
+                                    // style={{ pointerEvents: 'none' }} // Allow interaction
                                     ></iframe>
                                 </div>
                             )}
@@ -173,7 +173,7 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                        style={{ pointerEvents: 'none' }}
+                                    // style={{ pointerEvents: 'none' }}
                                     ></iframe>
                                 </div>
                             )}

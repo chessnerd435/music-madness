@@ -351,6 +351,10 @@ export async function setBracketActive(formData) {
         batch.update(doc(db, 'brackets', d.id), { isActive: d.id === id });
     });
     await batch.commit();
+
+    const cookieStore = await cookies();
+    cookieStore.set('admin_bracket_id', id);
+
     revalidatePath('/admin');
     revalidatePath('/');
     revalidatePath('/vote');

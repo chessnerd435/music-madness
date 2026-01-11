@@ -373,7 +373,7 @@ export default async function AdminPage() {
                                         {match.status === 'locked' && match.song1Id && match.song2Id && (
                                             <form action={openMatch}>
                                                 <input type="hidden" name="matchId" value={match.id} />
-                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#eab308', color: 'black' }}>Opn Vote</button>
+                                                <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.8rem', background: '#eab308', color: 'black' }}>Open Match</button>
                                             </form>
                                         )}
 
