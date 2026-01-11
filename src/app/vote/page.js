@@ -1,5 +1,6 @@
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import Link from 'next/link';
 import VoteMatchCard from './VoteMatchCard';
 
 export const dynamic = 'force-dynamic';
@@ -49,6 +50,9 @@ export default async function VotePage() {
 
     return (
         <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div style={{ marginBottom: '1rem' }}>
+                <Link href="/" style={{ color: '#4ade80', textDecoration: 'none' }}>&larr; Back to Bracket</Link>
+            </div>
             <h1 className="text-center" style={{ marginBottom: '2rem' }}>Cast Your Votes! 🗳️</h1>
 
             {matches.length === 0 ? (

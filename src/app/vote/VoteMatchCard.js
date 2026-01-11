@@ -61,7 +61,6 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
         } else {
             setFeedback(null); // Clear feedback to show form again
             router.refresh(); // Refresh server data
-            window.location.reload(); // Force reload to ensure UI updates
         }
         setIsSubmitting(false);
     };

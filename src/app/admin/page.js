@@ -83,13 +83,21 @@ export default async function AdminPage() {
             <div className="card" style={{ border: '1px solid #c084fc', background: '#1e293b' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <h3>Bracket:</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Editing Bracket:</h3>
+                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.2rem' }}>
+                                Publicly Active: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{brackets.find(b => b.isActive)?.name || 'None'}</span>
+                            </div>
+                        </div>
+
                         {brackets.length > 0 ? (
-                            <form action={switchAdminBracket}>
+                            <form action={switchAdminBracket} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                 <select
                                     name="bracketId"
                                     defaultValue={currentBracketId || ''}
-                                    style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none', marginRight: '0.5rem' }}
+                                    // wrapper around requestSubmit to handle potential null
+                                    onChange={(e) => e.target.form?.requestSubmit()}
+                                    style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none' }}
                                 >
                                     {brackets.map(b => (
                                         <option key={b.id} value={b.id}>
@@ -97,7 +105,9 @@ export default async function AdminPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>Go</button>
+                                <noscript>
+                                    <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>View</button>
+                                </noscript>
                             </form>
                         ) : (
                             <span style={{ color: '#f59e0b' }}>System Needs Initialization</span>
