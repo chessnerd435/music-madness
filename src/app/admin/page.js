@@ -81,44 +81,74 @@ export default async function AdminPage() {
             </div>
 
             <div className="card" style={{ border: '1px solid #c084fc', background: '#1e293b' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Editing Bracket:</h3>
-                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginTop: '0.2rem' }}>
-                                Publicly Active: <span style={{ color: '#4ade80', fontWeight: 'bold' }}>{brackets.find(b => b.isActive)?.name || 'None'}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {/* Top Row: Current View & Active Status */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+
+                        {/* Currently Editing Section */}
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '0.9rem', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                Currently Editing
                             </div>
+                            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                {currentBracket ? currentBracket.name : 'No Bracket Selected'}
+                                {currentBracket && currentBracket.isActive && (
+                                    <span style={{ fontSize: '0.8rem', background: '#4ade80', color: 'black', padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: 'bold', verticalAlign: 'middle' }}>
+                                        LIVE ON SITE
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Selector */}
+                            {brackets.length > 0 && (
+                                <form action={switchAdminBracket} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                                    <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Switch View:</span>
+                                    <select
+                                        name="bracketId"
+                                        defaultValue={currentBracketId || ''}
+                                        style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: '1px solid #475569' }}
+                                    >
+                                        {brackets.map(b => (
+                                            <option key={b.id} value={b.id}>
+                                                {b.name} {b.isActive ? '(Active)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <button className="btn" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem' }}>Go</button>
+                                </form>
+                            )}
                         </div>
 
-                        {brackets.length > 0 ? (
-                            <form action={switchAdminBracket} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                <select
-                                    name="bracketId"
-                                    defaultValue={currentBracketId || ''}
-                                    style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none' }}
-                                >
-                                    {brackets.map(b => (
-                                        <option key={b.id} value={b.id}>
-                                            {String(b.name)} {b.isActive ? '(Active)' : ''}
-                                        </option>
-                                    ))}
-                                </select>
-                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>View</button>
-                            </form>
-                        ) : (
-                            <span style={{ color: '#f59e0b' }}>System Needs Initialization</span>
-                        )}
+                        {/* Public Active Status Section */}
+                        <div style={{ background: 'rgba(0,0,0,0.2)', padding: '1rem', borderRadius: '8px', minWidth: '250px' }}>
+                            <div style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '0.5rem' }}>
+                                PUBLICLY VISIBLE BRACKET
+                            </div>
+                            <div style={{ fontSize: '1.2rem', color: '#4ade80', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+                                {brackets.find(b => b.isActive)?.name || 'None Configured'}
+                            </div>
+
+                            {currentBracket && !currentBracket.isActive && (
+                                <form action={setBracketActive}>
+                                    <input type="hidden" name="bracketId" value={currentBracket.id} />
+                                    <button className="btn" style={{ background: '#4ade80', color: 'black', fontSize: '0.8rem', width: '100%' }}>
+                                        Set "{currentBracket.name}" as Active
+                                    </button>
+                                </form>
+                            )}
+                            {currentBracket && currentBracket.isActive && (
+                                <div style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                                    This bracket is currently live for voters.
+                                </div>
+                            )}
+                        </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                        {currentBracket && !currentBracket.isActive && (
-                            <form action={setBracketActive}>
-                                <input type="hidden" name="bracketId" value={currentBracket.id} />
-                                <button className="btn" style={{ background: '#4ade80', color: 'black', fontSize: '0.8rem' }}>Make Active Publicly</button>
-                            </form>
-                        )}
-                        <form action={createBracket} style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input name="name" placeholder="New Bracket Name" required style={{ padding: '0.4rem', width: '150px' }} />
+                    {/* New Bracket */}
+                    <div style={{ borderTop: '1px solid #334155', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                        <form action={createBracket} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <span style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Create New Bracket:</span>
+                            <input name="name" placeholder="Name (e.g. 2026 Madness)" required style={{ padding: '0.4rem', borderRadius: '4px', border: '1px solid #475569', background: '#1e293b', color: 'white' }} />
                             <button className="btn btn-primary" style={{ fontSize: '0.8rem' }}>Create</button>
                         </form>
                     </div>

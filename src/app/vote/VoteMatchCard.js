@@ -8,25 +8,10 @@ import { useRouter } from 'next/navigation';
 export default function VoteMatchCard({ match, classes, votes, songsMap }) {
     const router = useRouter();
     const [selectedClassId, setSelectedClassId] = useState('');
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [feedback, setFeedback] = useState(null); // { type: 'success'|'error', msg: string }
+    const [optimisticVote, setOptimisticVote] = useState(undefined);
 
-    // Check if the selected class has already voted
-    const existingVote = votes.find(v => v.matchId === match.id && v.classId === selectedClassId);
-
-    // Helper to get YouTube ID
-    const getYoutubeId = (url) => {
-        if (!url) return null;
-        try {
-            const u = new URL(url);
-            if (u.hostname.includes('youtube.com')) {
-                return u.searchParams.get('v');
-            } else if (u.hostname.includes('youtu.be')) {
-                return u.pathname.slice(1);
-            }
-        } catch (e) { return null; }
-        return null;
-    };
+    // use optimisticVote if it's set (meaning we just acted), otherwise fallback to server data
+    const currentVote = optimisticVote !== undefined ? optimisticVote : existingVote;
 
     const handleVote = async (formData) => {
         setIsSubmitting(true);
@@ -39,15 +24,23 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
             return;
         }
 
-        // Add classId manually since it's state-driven now
+        // Add classId manually
         formData.append('classId', selectedClassId);
+
+        // Optimistic update
+        const songId = formData.get('votedForId');
+        setOptimisticVote({
+            votedForId: songId,
+            classId: selectedClassId
+        });
 
         const res = await submitVote(formData);
         if (res?.error) {
             setFeedback({ type: 'error', msg: res.error });
+            setOptimisticVote(undefined); // Revert on error
         } else {
             setFeedback({ type: 'success', msg: 'Vote Confirmed! 🎉' });
-            router.refresh(); // Refresh server data
+            router.refresh();
         }
         setIsSubmitting(false);
     };
@@ -55,12 +48,17 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
     const handleUndo = async () => {
         if (!confirm('Are you sure you want to change your vote?')) return;
         setIsSubmitting(true);
+
+        // Optimistic update
+        setOptimisticVote(null);
+
         const res = await deleteVote(match.id, selectedClassId);
         if (res?.error) {
             setFeedback({ type: 'error', msg: res.error });
+            setOptimisticVote(undefined); // Revert
         } else {
-            setFeedback(null); // Clear feedback to show form again
-            router.refresh(); // Refresh server data
+            setFeedback(null);
+            router.refresh();
         }
         setIsSubmitting(false);
     };
@@ -76,11 +74,10 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
                     value={selectedClassId}
                     onChange={(e) => {
                         setSelectedClassId(e.target.value);
-                        setFeedback(null); // Clear feedback on class change
+                        setFeedback(null);
+                        setOptimisticVote(undefined); // Reset optimistic state on class switch
                     }}
-                    disabled={isSubmitting} // Don't disable if voted, just to allow switching classes to see their status?
-                    // Actually, if a class has voted, we should show that. But if I want to switch to another class to vote for them?
-                    // Yes, user should be able to switch classes freely.
+                    disabled={isSubmitting}
                     style={{ width: '100%', padding: '0.8rem', borderRadius: '0.5rem', background: '#1e293b', color: 'white', border: '1px solid #475569' }}
                 >
                     <option value="">-- Choose Class --</option>
@@ -104,13 +101,13 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
                 </div>
             )}
 
-            {selectedClassId && existingVote ? (
+            {selectedClassId && currentVote ? (
                 <div style={{ textAlign: 'center', padding: '2rem', background: '#334155', borderRadius: '0.5rem' }}>
                     <h3 style={{ color: '#4ade80', marginBottom: '1rem' }}>Vote Registered!</h3>
                     <p style={{ marginBottom: '1.5rem' }}>
                         Class <strong>{classes.find(c => c.id === selectedClassId)?.name}</strong> voted for:<br />
                         <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'white' }}>
-                            {existingVote.votedForId === match.song1Id ? match.song1Title : match.song2Title}
+                            {currentVote.votedForId === match.song1Id ? match.song1Title : match.song2Title}
                         </span>
                     </p>
                     <button
@@ -127,62 +124,83 @@ export default function VoteMatchCard({ match, classes, votes, songsMap }) {
                     <input type="hidden" name="matchId" value={match.id} />
 
                     {/* Songs Selection */}
-                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', opacity: (!selectedClassId || isSubmitting) ? 0.5 : 1, pointerEvents: (!selectedClassId || isSubmitting) ? 'none' : 'auto' }}>
-                        <label style={{
-                            flex: 1,
-                            padding: '1.5rem',
-                            background: '#334155',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            border: '2px solid transparent'
-                        }}>
-                            <input type="radio" name="votedForId" value={match.song1Id} required style={{ display: 'block', margin: '0 auto 1rem' }} />
-                            <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song1Title}</div>
+                    <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', opacity: (!selectedClassId || isSubmitting) ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+
+                        {/* Option 1 */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <label style={{
+                                flex: 1,
+                                padding: '1.5rem',
+                                background: '#334155',
+                                borderRadius: '0.5rem',
+                                cursor: (!selectedClassId || isSubmitting) ? 'not-allowed' : 'pointer',
+                                textAlign: 'center',
+                                border: '2px solid transparent',
+                                display: 'block'
+                            }}>
+                                <input
+                                    type="radio"
+                                    name="votedForId"
+                                    value={match.song1Id}
+                                    required
+                                    disabled={!selectedClassId || isSubmitting}
+                                    style={{ display: 'block', margin: '0 auto 1rem' }}
+                                />
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song1Title}</div>
+                            </label>
                             {songsMap[match.song1Id]?.youtubeUrl && (
-                                <div style={{ marginTop: '1rem', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                <div style={{ borderRadius: '0.5rem', overflow: 'hidden', height: '200px' }}>
                                     <iframe
                                         width="100%"
-                                        height="200"
+                                        height="100%"
                                         src={`https://www.youtube.com/embed/${getYoutubeId(songsMap[match.song1Id].youtubeUrl)}`}
                                         title="YouTube video player"
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                    // style={{ pointerEvents: 'none' }} // Allow interaction
                                     ></iframe>
                                 </div>
                             )}
-                        </label>
+                        </div>
 
                         <div style={{ display: 'flex', alignItems: 'center' }}>VS</div>
 
-                        <label style={{
-                            flex: 1,
-                            padding: '1.5rem',
-                            background: '#334155',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            textAlign: 'center',
-                            border: '2px solid transparent'
-                        }}>
-                            <input type="radio" name="votedForId" value={match.song2Id} required style={{ display: 'block', margin: '0 auto 1rem' }} />
-                            <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song2Title}</div>
+                        {/* Option 2 */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <label style={{
+                                flex: 1,
+                                padding: '1.5rem',
+                                background: '#334155',
+                                borderRadius: '0.5rem',
+                                cursor: (!selectedClassId || isSubmitting) ? 'not-allowed' : 'pointer',
+                                textAlign: 'center',
+                                border: '2px solid transparent',
+                                display: 'block'
+                            }}>
+                                <input
+                                    type="radio"
+                                    name="votedForId"
+                                    value={match.song2Id}
+                                    required
+                                    disabled={!selectedClassId || isSubmitting}
+                                    style={{ display: 'block', margin: '0 auto 1rem' }}
+                                />
+                                <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{match.song2Title}</div>
+                            </label>
                             {songsMap[match.song2Id]?.youtubeUrl && (
-                                <div style={{ marginTop: '1rem', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                                <div style={{ borderRadius: '0.5rem', overflow: 'hidden', height: '200px' }}>
                                     <iframe
                                         width="100%"
-                                        height="200"
+                                        height="100%"
                                         src={`https://www.youtube.com/embed/${getYoutubeId(songsMap[match.song2Id].youtubeUrl)}`}
                                         title="YouTube video player"
                                         frameBorder="0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                         allowFullScreen
-                                    // style={{ pointerEvents: 'none' }}
                                     ></iframe>
                                 </div>
                             )}
-                        </label>
+                        </div>
                     </div>
 
                     <button
