@@ -95,8 +95,6 @@ export default async function AdminPage() {
                                 <select
                                     name="bracketId"
                                     defaultValue={currentBracketId || ''}
-                                    // wrapper around requestSubmit to handle potential null
-                                    onChange={(e) => e.target.form?.requestSubmit()}
                                     style={{ padding: '0.5rem', borderRadius: '4px', background: '#334155', color: 'white', border: 'none' }}
                                 >
                                     {brackets.map(b => (
@@ -105,9 +103,7 @@ export default async function AdminPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <noscript>
-                                    <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>View</button>
-                                </noscript>
+                                <button className="btn" style={{ padding: '0.3rem 0.6rem', fontSize: '0.8rem' }}>View</button>
                             </form>
                         ) : (
                             <span style={{ color: '#f59e0b' }}>System Needs Initialization</span>
